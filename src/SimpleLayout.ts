@@ -1,268 +1,273 @@
 // This file is part of phosphor-float-area, copyright (C) 2017 BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 
-import { Message, MessageLoop } from '@phosphor/messaging';
-import { IIterator, iter } from '@phosphor/algorithm';
-import { ElementExt } from '@phosphor/domutils';
-import { Widget, Layout, LayoutItem } from '@phosphor/widgets';
+import {Message, MessageLoop} from '@phosphor/messaging';
+import {IIterator, iter} from '@phosphor/algorithm';
+import {ElementExt} from '@phosphor/domutils';
+import {Widget, Layout, LayoutItem} from '@phosphor/widgets';
 
 export interface GenericItem {
-	dispose(): void;
-	fit(): void;
-	update(x?: number, y?: number, width?: number, height?: number): void;
+    dispose(): void;
 
-	widget: Widget;
-	parentNode?: HTMLElement;
+    fit(): void;
 
-	minWidth: number;
-	maxWidth: number;
-	minHeight: number;
-	maxHeight: number;
+    update(x?: number, y?: number, width?: number, height?: number): void;
+
+    widget: Widget;
+    parentNode?: HTMLElement;
+
+    minWidth: number;
+    maxWidth: number;
+    minHeight: number;
+    maxHeight: number;
 }
 
 export interface SimpleBox {
-	x: number;
-	y: number;
-	innerWidth: number;
-	innerHeight: number;
-	outerWidth: number;
-	outerHeight: number;
+    x: number;
+    y: number;
+    innerWidth: number;
+    innerHeight: number;
+    outerWidth: number;
+    outerHeight: number;
 }
 
 export class SimpleItem implements GenericItem {
 
-	constructor(public widget: Widget, public parentNode?: HTMLElement) {}
+    constructor(public widget: Widget, public parentNode?: HTMLElement) {
+    }
 
-	dispose() {}
+    dispose() {
+    }
 
-	fit() {
-		const limits = ElementExt.sizeLimits(this.widget.node);
+    fit() {
+        const limits = ElementExt.sizeLimits(this.widget.node);
 
-		this.minWidth = limits.minWidth;
-		this.maxWidth = limits.maxWidth;
-		this.minHeight = limits.minHeight;
-		this.maxHeight = limits.maxHeight;
-	}
+        this.minWidth = limits.minWidth;
+        this.maxWidth = limits.maxWidth;
+        this.minHeight = limits.minHeight;
+        this.maxHeight = limits.maxHeight;
+    }
 
-	update(x?: number, y?: number, width?: number, height?: number) {
-		if(width && height && (width != this.width || height != this.height)) {
-			this.width = width;
-			this.height = height;
+    update(x?: number, y?: number, width?: number, height?: number) {
+        if (width && height && (width != this.width || height != this.height)) {
+            this.width = width;
+            this.height = height;
 
-			MessageLoop.sendMessage(this.widget, new Widget.ResizeMessage(width, height));
-		}
-	}
+            MessageLoop.sendMessage(this.widget, new Widget.ResizeMessage(width, height));
+        }
+    }
 
-	width: number;
-	height: number;
-	minWidth: number;
-	maxWidth: number;
-	minHeight: number;
-	maxHeight: number;
+    width: number;
+    height: number;
+    minWidth: number;
+    maxWidth: number;
+    minHeight: number;
+    maxHeight: number;
 
 }
 
 export class SimpleLayout<Item extends GenericItem = LayoutItem> extends Layout {
 
-	constructor(
-		protected Item = (
-			LayoutItem as { new(widget: Widget): GenericItem }
-		) as { new(widget: Widget): Item }
-	) {
-		super();
-	}
+    constructor(
+        protected Item = (
+            LayoutItem as { new(widget: Widget): GenericItem }
+        ) as { new(widget: Widget): Item }
+    ) {
+        super();
+    }
 
-	iter(): IIterator<Widget> {
-		return iter(this.widgetList);
-	}
+    iter(): IIterator<Widget> {
+        return iter(this.widgetList);
+    }
 
-	init() {
-		super.init();
+    init() {
+        super.init();
 
-		if(this.parent) {
-			for(let widget of this.widgetList) this.attachWidget(widget);
+        if (this.parent) {
+            for (let widget of this.widgetList) this.attachWidget(widget);
 
-			this.parent.fit();
-		}
-	}
+            this.parent.fit();
+        }
+    }
 
-	dispose() {
-		this.itemMap.forEach(item => item.dispose());
-		this.itemMap.clear();
+    dispose() {
+        this.itemMap.forEach(item => item.dispose());
+        this.itemMap.clear();
 
-		for(let widget of this.widgetList) widget.dispose();
+        for (let widget of this.widgetList) widget.dispose();
 
-		super.dispose();
-	}
+        super.dispose();
+    }
 
-	afterUpdate(handler: () => void) {
-		this.afterUpdateList.push(handler);
-	}
+    afterUpdate(handler: () => void) {
+        this.afterUpdateList.push(handler);
+    }
 
-	addItem(item: Item) {
-		this.itemMap.set(item.widget, item);
+    addItem(item: Item) {
+        this.itemMap.set(item.widget, item);
 
-		return(SimpleLayout.prototype.addWidget.call(this, item.widget));
-	}
+        return (SimpleLayout.prototype.addWidget.call(this, item.widget));
+    }
 
-	addWidget(widget: Widget) {
-		let item: Item | undefined;
+    addWidget(widget: Widget) {
+        let item: Item | undefined;
 
-		this.widgetList.push(widget);
+        this.widgetList.push(widget);
 
-		if(this.parent) {
-			item = this.attachWidget(widget);
-			this.parent.fit();
-		}
+        if (this.parent) {
+            item = this.attachWidget(widget);
+            this.parent.fit();
+        }
 
-		return(item);
-	}
+        return (item);
+    }
 
-	removeWidget(widget: Widget) {
-		this.widgetList.splice(this.widgetList.indexOf(widget), 1);
+    removeWidget(widget: Widget) {
+        this.widgetList.splice(this.widgetList.indexOf(widget), 1);
 
-		if(this.parent) {
-			this.detachWidget(widget);
-			this.parent.fit();
-		}
-	}
+        if (this.parent) {
+            this.detachWidget(widget);
+            this.parent.fit();
+        }
+    }
 
-	protected attachWidget(widget: Widget) {
-		let item = this.itemMap.get(widget);
-		const parentNode = (item && item.parentNode) || this.parent!.node;
+    protected attachWidget(widget: Widget) {
+        let item = this.itemMap.get(widget);
+        const parentNode = (item && item.parentNode) || this.parent!.node;
 
-		if(widget.node.parentNode == parentNode) return(item);
+        if (widget.node.parentNode == parentNode) return (item);
 
-		const parentAttached = this.parent!.isAttached;
+        const parentAttached = this.parent!.isAttached;
 
-		if(parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.BeforeAttach);
+        if (parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.BeforeAttach);
 
-		parentNode.appendChild(widget.node);
+        parentNode.appendChild(widget.node);
 
-		if(parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.AfterAttach);
+        if (parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.AfterAttach);
 
-		if(!item) {
-			item = new this.Item(widget);
-			this.itemMap.set(widget, item);
-		}
+        if (!item) {
+            item = new this.Item(widget);
+            this.itemMap.set(widget, item);
+        }
 
-		return(item);
-	}
+        return (item);
+    }
 
-	protected detachWidget(widget: Widget) {
-		const item = this.itemMap.get(widget);
-		const parentNode = (item && item.parentNode) || this.parent!.node;
+    protected detachWidget(widget: Widget) {
+        const item = this.itemMap.get(widget);
+        const parentNode = (item && item.parentNode) || this.parent!.node;
 
-		if(widget.node.parentNode != parentNode) return;
+        if (widget.node.parentNode != parentNode) return;
 
-		const parentAttached = this.parent!.isAttached;
+        const parentAttached = this.parent!.isAttached;
 
-		if(parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.BeforeDetach);
+        if (parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.BeforeDetach);
 
-		parentNode.removeChild(widget.node);
+        parentNode.removeChild(widget.node);
 
-		if(parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.AfterDetach);
+        if (parentAttached) MessageLoop.sendMessage(widget, Widget.Msg.AfterDetach);
 
-		if(item) {
-			this.itemMap.delete(widget);
-			item.dispose();
-		}
-	}
+        if (item) {
+            this.itemMap.delete(widget);
+            item.dispose();
+        }
+    }
 
-	protected onBeforeAttach(msg: Message) {
-		super.onBeforeAttach(msg);
-		this.parent!.fit();
-	}
+    protected onBeforeAttach(msg: Message) {
+        super.onBeforeAttach(msg);
+        this.parent!.fit();
+    }
 
-	protected onFitRequest(msg: Message) {
-		if(!this.parent!.isAttached) return;
+    protected onFitRequest(msg: Message) {
+        if (!this.parent!.isAttached) return;
 
-		let minWidth = 0;
-		let minHeight = 0;
-		let maxWidth = Infinity;
-		let maxHeight = Infinity;
+        let minWidth = 0;
+        let minHeight = 0;
+        let maxWidth = Infinity;
+        let maxHeight = Infinity;
 
-		this.itemMap.forEach((item: Item) => {
-			item.fit();
-			minWidth = Math.max(minWidth, item.minWidth);
-			minHeight = Math.max(minHeight, item.minHeight);
-			maxWidth = Math.min(maxWidth, item.maxWidth);
-			maxHeight = Math.min(maxHeight, item.maxHeight);
-		});
+        this.itemMap.forEach((item: Item) => {
+            item.fit();
+            minWidth = Math.max(minWidth, item.minWidth);
+            minHeight = Math.max(minHeight, item.minHeight);
+            maxWidth = Math.min(maxWidth, item.maxWidth);
+            maxHeight = Math.min(maxHeight, item.maxHeight);
+        });
 
-		this.updateBox();
-		const extraWidth = this.box.outerWidth - this.box.innerWidth;
-		const extraHeight = this.box.outerHeight - this.box.innerHeight;
-		const style = this.parent!.node.style;
+        this.updateBox();
+        const extraWidth = this.box.outerWidth - this.box.innerWidth;
+        const extraHeight = this.box.outerHeight - this.box.innerHeight;
+        const style = this.parent!.node.style;
 
-		minWidth += extraWidth;
-		minHeight += extraHeight;
-		maxWidth += extraWidth;
-		maxHeight += extraHeight;
+        minWidth += extraWidth;
+        minHeight += extraHeight;
+        maxWidth += extraWidth;
+        maxHeight += extraHeight;
 
-		style.minWidth = minWidth + 'px';
-		style.minHeight = minHeight + 'px';
-		style.maxWidth = maxWidth + 'px';
-		style.maxHeight = maxHeight + 'px';
+        style.minWidth = minWidth + 'px';
+        style.minHeight = minHeight + 'px';
+        style.maxWidth = maxWidth + 'px';
+        style.maxHeight = maxHeight + 'px';
 
-		this.isUpdated = false;
+        this.isUpdated = false;
 
-		if(this.parent!.parent) {
-			MessageLoop.sendMessage(this.parent!.parent!, Widget.Msg.FitRequest);
-		}
+        if (this.parent!.parent) {
+            MessageLoop.sendMessage(this.parent!.parent!, Widget.Msg.FitRequest);
+        }
 
-		if(!this.isUpdated) {
-			MessageLoop.sendMessage(this.parent!, Widget.Msg.UpdateRequest);
-		}
-	}
+        if (!this.isUpdated) {
+            MessageLoop.sendMessage(this.parent!, Widget.Msg.UpdateRequest);
+        }
+    }
 
-	protected onUpdateRequest(msg: Message): void {
-		if(this.parent!.isVisible) this.update();
-	}
+    protected onUpdateRequest(msg: Message): void {
+        if (this.parent!.isVisible) this.update();
+    }
 
-	protected onResize(msg: Widget.ResizeMessage): void {
-		if(this.parent!.isVisible) this.update(msg.width, msg.height);
-	}
+    protected onResize(msg: Widget.ResizeMessage): void {
+        if (this.parent!.isVisible) this.update(msg.width, msg.height);
+    }
 
-	updateBox(width = this.parent!.node.offsetWidth, height = this.parent!.node.offsetHeight) {
-		const box = this.box;
-		const sizing = ElementExt.boxSizing(this.parent!.node);
+    updateBox(width = this.parent!.node.offsetWidth, height = this.parent!.node.offsetHeight) {
+        const box = this.box;
+        const sizing = ElementExt.boxSizing(this.parent!.node);
 
-		box.x = sizing.paddingLeft,
-		box.y = sizing.paddingTop,
-		box.innerWidth = width - sizing.horizontalSum;
-		box.innerHeight = height - sizing.verticalSum;
-		box.outerWidth = width;
-		box.outerHeight = height;
-	}
+        box.x = sizing.paddingLeft,
+            box.y = sizing.paddingTop,
+            box.innerWidth = width - sizing.horizontalSum;
+        box.innerHeight = height - sizing.verticalSum;
+        box.outerWidth = width;
+        box.outerHeight = height;
+    }
 
-	update(width?: number, height?: number) {
-		this.isUpdated = true;
+    update(width?: number, height?: number) {
+        this.isUpdated = true;
 
-		this.updateBox(width, height);
+        this.updateBox(width, height);
 
-		this.onUpdate();
+        this.onUpdate();
 
-		if(this.afterUpdateList.length) {
-			for(let handler of this.afterUpdateList) handler();
+        if (this.afterUpdateList.length) {
+            for (let handler of this.afterUpdateList) handler();
 
-			this.afterUpdateList = [];
-		}
-	}
+            this.afterUpdateList = [];
+        }
+    }
 
-	onUpdate() {}
+    onUpdate() {
+    }
 
-	updateItem(item: Item, x: number, y: number, width: number, height: number) {
-		item.update(x, y, width, height);
-	}
+    updateItem(item: Item, x: number, y: number, width: number, height: number) {
+        item.update(x, y, width, height);
+    }
 
-	protected box: SimpleBox = { x: 0, y: 0, innerWidth: 0, innerHeight: 0, outerWidth: 0, outerHeight: 0 };
+    protected box: SimpleBox = {x: 0, y: 0, innerWidth: 0, innerHeight: 0, outerWidth: 0, outerHeight: 0};
 
-	protected widgetList: Widget[] = [];
-	protected itemMap = new Map<Widget, Item>();
+    protected widgetList: Widget[] = [];
+    protected itemMap = new Map<Widget, Item>();
 
-	private afterUpdateList: (() => void)[] = [];
+    private afterUpdateList: (() => void)[] = [];
 
-	protected isUpdated = true;
+    protected isUpdated = true;
 
 }
