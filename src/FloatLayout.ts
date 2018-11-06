@@ -52,15 +52,22 @@ export class FloatLayout extends SimpleLayout<FloatLayoutItem | SimpleItem> {
         super(FloatLayoutItem);
     }
 
+   
     addWidget(widget: Widget, options: FloatLayout.AddOptions = {}, targetNode?: HTMLElement) {
         if (targetNode) {
             return (super.addItem(new SimpleItem(widget, targetNode)));
         }
 
-        const dialog = new Dialog();
-        const dockPanel = new DockPanel();
+        let dockPanel: any = null;
 
-        dockPanel.addWidget(widget);
+        if (widget.constructor.name === 'DockPanel') {
+            dockPanel = widget;
+        } else {
+            dockPanel = new DockPanel();
+            dockPanel.addWidget(widget);
+        }
+        const dialog = new Dialog();
+
         dialog.addWidget(dockPanel);
 
         const handleEvent = dockPanel.handleEvent;
